@@ -1,0 +1,23 @@
+{
+    "blackhole": {
+        "_websocket_provider": "wss://ropsten.infura.io/ws/v3/9b599775f8cf4021907170e4b7c7c1c1",
+        "websocket_provider": "ws://127.0.0.1:8545",
+        "critic_block": "0",
+        "minDuration": "30",
+        "minimum_amount": "100",
+        "symbol": "TCS",
+        "decimals": "8",
+        "tokens": "66363636600000000",
+        "address": "0xA4Ef11d341c2D4de1aF19A4B56dba9386101F170",
+        "erc20address": "0xc9f2F7CF7fafBd20545ca793e30579168CC2235e",
+        "exchange_rate": "3.01369863"
+    },
+    "eosiotoken": {
+        "chain_id": "5fff1dae8dc8e2fc4d5b23b2c7665c97f9e9d8edf2b6485a86ba311c25639191",
+        "http_endpoint": "https://api.kylin.alohaeos.com:443",
+        "account": "tacocontract",
+        "private_key": "",
+        "issuer": "tacosissuer1",
+        "symbol": "TACO"
+    }
+}

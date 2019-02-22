@@ -1,0 +1,158 @@
+pragma solidity ^0.4.24;
+
+// File: contracts/EosValidator.sol
+
+contract EosValidator {
+    function isValidKey(string str) public pure returns (bool){
+        bytes memory b = bytes(str);
+        if(b.length != 53) return false;
+
+        // EOS
+        if (bytes1(b[0]) != 0x45 || bytes1(b[1]) != 0x4F || bytes1(b[2]) != 0x53)
+            return false;
+
+        for(uint i = 3; i<b.length; i++){
+            bytes1 char = b[i];
+
+            // base58
+            if(!(char >= 0x31 && char <= 0x39) &&
+               !(char >= 0x41 && char <= 0x48) &&
+               !(char >= 0x4A && char <= 0x4E) &&
+               !(char >= 0x50 && char <= 0x5A) &&
+               !(char >= 0x61 && char <= 0x6B) &&
+               !(char >= 0x6D && char <= 0x7A)) 
+            return false;
+        }
+
+        return true;
+    }
+
+    function isValidAccount(string account) public pure returns (bool){
+        bytes memory b = bytes(account);
+        if (b.length != 12) return false;
+
+        for(uint i = 0; i<b.length; i++){
+            bytes1 char = b[i];
+
+            // a-z && 1-5 && .
+            if(!(char >= 0x61 && char <= 0x7A) && 
+               !(char >= 0x31 && char <= 0x35) && 
+               !(char == 0x2E)) 
+            return  false;
+        }
+        
+        return true;
+    }
+}
+
+// File: openzeppelin-solidity/contracts/token/ERC20/ERC20Basic.sol
+
+/**
+ * @title ERC20Basic
+ * @dev Simpler version of ERC20 interface
+ * See https://github.com/ethereum/EIPs/issues/179
+ */
+contract ERC20Basic {
+  function totalSupply() public view returns (uint256);
+  function balanceOf(address _who) public view returns (uint256);
+  function transfer(address _to, uint256 _value) public returns (bool);
+  event Transfer(address indexed from, address indexed to, uint256 value);
+}
+
+// File: openzeppelin-solidity/contracts/token/ERC20/ERC20.sol
+
+/**
+ * @title ERC20 interface
+ * @dev see https://github.com/ethereum/EIPs/issues/20
+ */
+contract ERC20 is ERC20Basic {
+  function allowance(address _owner, address _spender)
+    public view returns (uint256);
+
+  function transferFrom(address _from, address _to, uint256 _value)
+    public returns (bool);
+
+  function approve(address _spender, uint256 _value) public returns (bool);
+  event Approval(
+    address indexed owner,
+    address indexed spender,
+    uint256 value
+  );
+}
+
+// File: contracts/BlackHole.sol
+
+/** @title BlackHole 
+ * 
+ * @dev Implementation of the BlackHole contract.
+ * It deadlocks ERC20 tockens and emit events on success.
+ */
+contract BlackHole {
+    event Opened();
+    event Teleport(uint amount, string note);
+    event Closed();
+
+    bool public closed = false;
+    ERC20 public erc20Contract;
+    uint public criticBlock;
+    uint public minimumAmount;
+
+    /** @dev Construction of the ETH BlackHole contract.
+     * @param _erc20Contract The address of the ERC20 contract to attract tockens from.
+     * @param _criticBlock BlackHole can be closed after it.
+     * @param _minimumAmount the smallest amount BlackHole can attract.
+     */
+    constructor(address _erc20Contract, uint _criticBlock, uint _minimumAmount) public {
+        erc20Contract = ERC20(_erc20Contract);
+        criticBlock = _criticBlock;
+        minimumAmount = _minimumAmount;
+        emit Opened();
+    }
+
+    /** @dev It closes the BlackHole if critical block has been reached.
+     */
+    function close() public {
+        require(!closed, "This BlackHole contract's active period has expired.");
+        require(block.number >= criticBlock, "BlackHole hasn't reached the critical mass");
+        closed = true;
+        emit Closed();
+    }
+
+    /** @dev teleport attracts tokens and emit Teleport event
+     * @param note Teleport event note.
+     */
+    function teleport(string note) public {
+        uint amount = attract();
+        emit Teleport(amount, note);
+    }
+
+    function attract() private returns (uint amount){
+        require(!closed, "blackHole closed");
+        uint balance = erc20Contract.balanceOf(msg.sender);
+        uint allowed = erc20Contract.allowance(msg.sender, address(this));
+        require(allowed >= minimumAmount, "less than minimum amount");
+        require(balance == allowed, "blackHole must attract all your tokens");
+        require(erc20Contract.transferFrom(msg.sender, address(this), balance), "blackHole can't attract your tokens");
+        return balance;
+    }
+}
+
+// File: contracts/BlackHoleEosAccount.sol
+
+/** @title BlackHoleEosToAccount 
+ * 
+ * @dev It burns ERC20 tokens and log it with an associated EOS account.
+ */
+contract BlackHoleEosAccount is EosValidator, BlackHole{
+    constructor(address _erc20Contract, uint _criticBlock, uint _minimumAmount) public 
+    BlackHole(_erc20Contract, _criticBlock, _minimumAmount)
+    {
+    }
+
+    /** @dev It deadlocks your tokens and emit an event with amount and EOS account.
+     */
+    function teleport(string eosAccount) public {
+        require(isValidAccount(eosAccount), "not valid EOS account");
+        super.teleport(eosAccount);
+    }
+}
