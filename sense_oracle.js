@@ -1,3 +1,4 @@
+require('dotenv').config()
 const fs = require('fs');
 const Web3 = require('web3');
 const EosJs = require('eosjs');
@@ -7,39 +8,26 @@ const createWormHole = require('./oracle/TeleportOracle.js');
 
 console.log("ERC20 teleporting starts ...");
 
-const getParams = () => {
-    const argv = require('minimist')(process.argv.slice(2), {
-        default: {
-            config: 'configLocal.json'
-        }
-    });
-
-    const configFile = argv.config;
-    check(fs.existsSync(configFile), "configuration file: " + configFile);
-    const config = JSON.parse(fs.readFileSync(configFile));
-    return config;
-}
-
-const params = getParams();
-
-const eosioTokenKey = params.eosiotoken.private_key;
-const eosProvider = params.eosiotoken.http_endpoint;
-const ethereumProvider = params.blackhole.websocket_provider;
-const eosioTokenAddress = params.eosiotoken.account;
-const blackHoleAddress = params.blackhole.address;
+// ETH CONFIGS
+const ethereumProvider = process.env.ETH_WEBSOCKET_PROVIDER;
+const blackHoleAddress = process.env.MIGRATION_CONTRACT;
 console.log("Current blackhole contract: ", blackHoleAddress);
-const decimals = params.blackhole.decimals;
+const decimals = process.env.ETH_DECIMALS;
+const symbol = process.env.ETH_SYMBOL;
+
+// EOS CONFIGS
+const eosProvider = process.env.EOS_API_ENDPOINT;
+const chainId = process.env.EOS_CHAIN_ID;
+const eosioTokenKey = process.env.EOS_ACTIVE_PK;
+const eosioTokenAddress = process.env.EOS_TOKEN_CONTRACT;
 const eosDecimals = 4;
-const exchangeMultiplier = 3.01369863;
-const symbol = params.blackhole.symbol;
-const chainId = params.eosiotoken.chain_id;
-const eosTokenSymbol = params.eosiotoken.symbol;
-const eosIssuer = params.eosiotoken.issuer;
+const exchangeMultiplier = process.env.EOS_EXCHANGE_RATE;
+const eosTokenSymbol = process.env.EOS_TOKEN_SYMBOL;
+const eosIssuer = process.env.EOS_TOKEN_ISSUER;
 const teleportMemo = "Welcome to SENSE on EOS!";
 
-check(Web3.utils.isAddress(blackHoleAddress), "blackhole account: " + blackHoleAddress);
+check(Web3.utils.isAddress(blackHoleAddress), "migration contract: " + blackHoleAddress);
 check(eosioTokenAddress, "eosio.token account: " + eosioTokenAddress);
-check(eosioTokenKey, 'eosio.token key: ' + eosioTokenKey);
 check(ethereumProvider, "Ethereum provider: " + ethereumProvider);
 check(eosProvider, "EOS provider: " + eosProvider);
 check(symbol, "ERC20 symbol: " + symbol);
@@ -59,10 +47,8 @@ eosConfig = {
     authorization: eosIssuer + '@active'
 };
 
-//const input = fs.readFileSync(blackHoleFile);
 const contract = blackHoleFile;
 const abi = contract.abi;
-
 const websocketProvider = new Web3.providers.WebsocketProvider(ethereumProvider);
 const web3 = new Web3(websocketProvider);
 const blackHole = new web3.eth.Contract(abi, blackHoleAddress);

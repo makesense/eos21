@@ -5,3 +5,4 @@ CMakeLists.txt.user
 blackhole_address
 erc20_address
 config.json
+.env
